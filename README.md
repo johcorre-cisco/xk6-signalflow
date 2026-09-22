@@ -74,6 +74,86 @@ values across the result set. Each `TimeSeriesSummary` exposes `metric`, `dimens
 and have the shape `{ timestamp, value, type }`. Metadata dimensions are the
 non-`sf_` properties from the SignalFlow metadata record.
 
+## End-to-end examples
+
+The main k6 body creates a client, executes a SignalFlow program, collects the
+returned messages, groups them by TSID, and prints a useful summary:
+
+```js
+import signalflow from 'k6/x/signalflow';
+
+export const options = {
+  vus: 1,
+  iterations: 1,
+};
+
+function runSignalFlow(program) {
+  const client = signalflow.client({
+    realm: __ENV.SFX_REALM || 'us0',
+    token: __ENV.SFX_ACCESS_TOKEN,
+  });
+
+  const computation = client.execute({
+    program,
+    resolution: 10000,
+    immediate: true,
+    timeout: 15000,
+    lookback: 60 * 60 * 1000,
+  });
+
+  const messages = [];
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    const message = computation.next(Math.min(2000, deadline - Date.now()));
+    if (message === null) {
+      break;
+    }
+    messages.push(message);
+  }
+
+  const resultMap = signalflow.group(messages);
+  const firstTsid = resultMap.timeSeriesIds[0];
+  const firstSeries = firstTsid
+    ? resultMap.getTimeSeriesDataById(firstTsid)
+    : null;
+
+  console.log(JSON.stringify({
+    messageCount: messages.length,
+    timeSeriesCount: resultMap.timeSeriesCount,
+    cardinality: resultMap.cardinality,
+    dimensionsAndValues: resultMap.dimensionsAndValues,
+    firstSeries: firstSeries === null ? null : {
+      tsid: firstSeries.tsid,
+      metric: firstSeries.metric,
+      dimensions: firstSeries.dimensions,
+      datapointCount: firstSeries.datapointCount,
+      datapoints: firstSeries.datapoints.slice(0, 3),
+      metadata: firstSeries.metadata,
+    },
+  }));
+
+  computation.stop();
+  client.close();
+}
+
+export default function () {
+  runSignalFlow("data('sf.org.num.orguser').publish()");
+}
+```
+
+To run the generic Kubernetes deployment metric instead, change the final
+program to:
+
+```js
+export default function () {
+  runSignalFlow("data('k8s.deployments.available').publish()");
+}
+```
+
+The metric must exist in the selected Observability Cloud realm. The one-hour
+lookback is expressed in milliseconds; SignalFlow may return fewer samples than
+the requested resolution when the source metric has a coarser native resolution.
+
 ## Editor type support
 
 The extension ships TypeScript declarations in `index.d.ts`. For a separate
