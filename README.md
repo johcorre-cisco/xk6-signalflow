@@ -20,7 +20,7 @@ Or build a reusable binary:
 
 ```bash
 xk6 build \
-  --with github.com/your-org/xk6-signalflow=. \
+  --with github.com/johcorre-cisco/xk6-signalflow=. \
   --output ./k6
 
 ./k6 run examples/smoke.js
