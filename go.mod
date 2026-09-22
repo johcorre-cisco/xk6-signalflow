@@ -1,4 +1,4 @@
-module github.com/your-org/xk6-signalflow
+module github.com/johcorre-cisco/xk6-signalflow
 
 go 1.25.0
 
