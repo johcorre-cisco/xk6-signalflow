@@ -50,18 +50,41 @@ const metadata = computation.metadata(message.datapoints[0].tsid, 1000);
 const messages = [];
 // collect messages with computation.next(...)
 const resultMap = signalflow.group(messages);
-const tsid = resultMap.listTimeSeriesIds()[0];
+const tsid = resultMap.timeSeriesIds[0];
 const series = resultMap.getTimeSeriesDataById(tsid);
+resultMap.timeSeriesCount;
+resultMap.cardinality;
+resultMap.dimensionsAndValues;
 series.metric;
 series.dimensions;
-series.getDatapoints();
-series.getTimeSeriesDatapointsCount();
+series.datapoints;
+series.metadata;
+series.datapointCount;
 ```
 
 Messages are returned as plain JavaScript objects with `type`, channel/timestamp
 fields, and type-specific data. Data messages include `datapointCount` and a
 `datapoints` array; metadata, info, event, and expired-timeseries messages are
 also exposed. `signalflow.group(messages)` organizes the returned message set by
-TSID. Each `TimeSeriesSummary` exposes `metric`, `dimensions`, `getDatapoints()`,
-and `getTimeSeriesDatapointsCount()`. Metadata dimensions are the non-`sf_`
-properties from the SignalFlow metadata record.
+TSID. `ComputationResultMap` exposes `timeSeriesIds`, `timeSeriesCount`,
+`cardinality`, and `dimensionsAndValues`. `cardinality` is the number of unique
+time series; `dimensionsAndValues` maps each dimension to its sorted unique
+values across the result set. Each `TimeSeriesSummary` exposes `metric`, `dimensions`, `datapoints`,
+`metadata`, and `datapointCount`. Datapoints are sorted by ascending timestamp
+and have the shape `{ timestamp, value, type }`. Metadata dimensions are the
+non-`sf_` properties from the SignalFlow metadata record.
+
+## Editor type support
+
+The extension ships TypeScript declarations in `index.d.ts`. For a separate
+test repository, include that file in its `tsconfig.json` or `jsconfig.json`:
+
+```json
+{
+  "files": ["../xk6-signalflow/index.d.ts"],
+  "include": ["scripts/**/*.js"]
+}
+```
+
+This enables autocomplete and type checking for `k6/x/signalflow`; the
+declarations are for tooling only and are not needed by the k6 runtime.

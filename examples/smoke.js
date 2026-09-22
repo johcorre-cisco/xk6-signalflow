@@ -68,7 +68,7 @@ export default function () {
   }
 
   const resultMap = signalflow.group(messages);
-  const groupedIds = resultMap.listTimeSeriesIds();
+  const groupedIds = resultMap.timeSeriesIds;
   const firstSeries = groupedIds.length > 0 ? resultMap.getTimeSeriesDataById(groupedIds[0]) : null;
 
   const { tsids, ...printableSummary } = summary;
@@ -76,13 +76,16 @@ export default function () {
     ...printableSummary,
     uniqueTimeseries: summary.tsids.size,
     sampleTsids: [...summary.tsids].slice(0, 10),
-    groupedTimeSeries: resultMap.timeSeriesCount(),
+    groupedTimeSeries: resultMap.timeSeriesCount,
+    cardinality: resultMap.cardinality,
+    dimensionsAndValues: resultMap.dimensionsAndValues,
     firstSeries: firstSeries === null ? null : {
       tsid: groupedIds[0],
       metric: firstSeries.metric,
       dimensions: firstSeries.dimensions,
-      datapoints: firstSeries.getTimeSeriesDatapointsCount(),
-      sampleDatapoints: firstSeries.getDatapoints().slice(0, 3),
+      datapointCount: firstSeries.datapointCount,
+      sampleDatapoints: firstSeries.datapoints.slice(0, 3),
+      metadata: firstSeries.metadata,
     },
   }));
 
